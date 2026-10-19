@@ -21,3 +21,10 @@ Panel varsayılan olarak `http://localhost:5173` adresinde çalışır. Backend 
 docker build --build-arg VITE_API_URL=https://apps-backend.triworkster.com -t mobile-app-manager .
 docker run --rm -p 3100:80 mobile-app-manager
 ```
+
+## Automatic deployment
+
+Every push to `main` runs `.github/workflows/deploy.yml`. The workflow connects
+to the production server, pulls the branch with fast-forward protection and
+rebuilds the Docker service. Configure `DEPLOY_HOST`, `DEPLOY_USER`,
+`DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS` as GitHub Actions secrets.
