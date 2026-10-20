@@ -43,6 +43,7 @@ export type MapsPlace = {
   category: string | null;
   address: string | null;
   phone: string | null;
+  emails: string | null;
   website: string | null;
   latitude: number | null;
   longitude: number | null;

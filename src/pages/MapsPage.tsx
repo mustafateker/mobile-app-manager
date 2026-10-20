@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   CircleAlert,
   Clock3,
   Download,
@@ -13,7 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { api, downloadApiFile } from '../api';
-import type { MapsJob, MapsJobStatus, MapsResults, MapsStatus } from '../types';
+import type { MapsJob, MapsJobStatus, MapsPlace, MapsResults, MapsStatus } from '../types';
 
 type JobForm = {
   keywords: string;
@@ -41,6 +43,7 @@ const statusLabel: Record<MapsJobStatus, string> = {
 };
 
 const activeStatuses = new Set<MapsJobStatus>(['queued', 'running']);
+const resultsPageSize = 50;
 
 function formatDate(value: string | null): string {
   if (!value) return '—';
@@ -49,11 +52,24 @@ function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
+function placeEmails(place: MapsPlace): string[] {
+  const value = place.emails ?? place.raw.emails;
+  if (Array.isArray(value)) return value.map(String).map((email) => email.trim()).filter(Boolean);
+  if (typeof value !== 'string') return [];
+  return value.split(/[,;]/).map((email) => email.trim()).filter(Boolean);
+}
+
+function websiteLabel(value: string): string {
+  try { return new URL(value).hostname.replace(/^www\./, ''); }
+  catch { return value; }
+}
+
 export function MapsPage() {
   const [status, setStatus] = useState<MapsStatus | null>(null);
   const [jobs, setJobs] = useState<MapsJob[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [results, setResults] = useState<MapsResults | null>(null);
+  const [resultsOffset, setResultsOffset] = useState(0);
   const [form, setForm] = useState<JobForm>(initialForm);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -91,10 +107,10 @@ export function MapsPage() {
     }
   }, []);
 
-  const loadResults = useCallback(async (jobId: string, quiet = false) => {
+  const loadResults = useCallback(async (jobId: string, offset: number, quiet = false) => {
     if (!quiet) setResultsLoading(true);
     try {
-      setResults(await api<MapsResults>(`/v1/maps/jobs/${jobId}/results?limit=100`));
+      setResults(await api<MapsResults>(`/v1/maps/jobs/${jobId}/results?limit=${resultsPageSize}&offset=${offset}`));
     } catch (unknownError) {
       setResults(null);
       if (!quiet) setError(unknownError instanceof Error ? unknownError.message : 'Sonuçlar alınamadı.');
@@ -106,8 +122,8 @@ export function MapsPage() {
   useEffect(() => { void loadJobs(); }, [loadJobs]);
   useEffect(() => {
     if (!selectedJob || selectedJob.status !== 'completed') { setResults(null); return; }
-    void loadResults(selectedJob.id);
-  }, [selectedJob?.id, selectedJob?.status, loadResults]);
+    void loadResults(selectedJob.id, resultsOffset);
+  }, [selectedJob?.id, selectedJob?.status, resultsOffset, loadResults]);
   useEffect(() => {
     if (!hasActiveJobs) return undefined;
     const timer = window.setInterval(() => { void loadJobs(true); }, 5000);
@@ -136,6 +152,7 @@ export function MapsPage() {
         }),
       });
       setForm((current) => ({ ...initialForm, language: current.language }));
+      setResultsOffset(0);
       setSelectedId(job.id);
       setMessage('Tarama işi sıraya alındı. Durum otomatik yenilenecek.');
       await loadJobs(true);
@@ -152,6 +169,7 @@ export function MapsPage() {
       await api(`/v1/maps/jobs/${job.id}`, { method: 'DELETE' });
       setMessage('Tarama işi silindi.');
       setResults(null);
+      setResultsOffset(0);
       await loadJobs(true);
     } catch (unknownError) {
       setError(unknownError instanceof Error ? unknownError.message : 'İş silinemedi.');
@@ -188,7 +206,7 @@ export function MapsPage() {
 
       <section className="maps-jobs-card">
         <div className="maps-card-head"><div><span className="eyebrow">İŞ GEÇMİŞİ</span><h2>Taramalar</h2></div><span className="job-count">{jobs.length}</span></div>
-        {loading ? <div className="maps-empty"><LoaderCircle className="spin" /><p>İşler yükleniyor…</p></div> : jobs.length === 0 ? <div className="maps-empty"><Search /><strong>Henüz tarama yok</strong><p>İlk sorgunu soldaki formdan başlat.</p></div> : <div className="maps-job-list">{jobs.map((job) => <button type="button" key={job.id} className={`maps-job-row ${selectedId === job.id ? 'selected' : ''}`} onClick={() => setSelectedId(job.id)}><span className={`job-state ${job.status}`}>{activeStatuses.has(job.status) ? <LoaderCircle className="spin" /> : job.status === 'completed' ? <CheckCircle2 /> : <CircleAlert />}</span><span className="job-main"><strong>{job.params.keywords?.join(', ') || 'Adsız tarama'}</strong><small><Clock3 /> {formatDate(job.created_at)} · {job.result_count} sonuç</small></span><span className={`job-status ${job.status}`}>{statusLabel[job.status]}</span></button>)}</div>}
+        {loading ? <div className="maps-empty"><LoaderCircle className="spin" /><p>İşler yükleniyor…</p></div> : jobs.length === 0 ? <div className="maps-empty"><Search /><strong>Henüz tarama yok</strong><p>İlk sorgunu soldaki formdan başlat.</p></div> : <div className="maps-job-list">{jobs.map((job) => <button type="button" key={job.id} className={`maps-job-row ${selectedId === job.id ? 'selected' : ''}`} onClick={() => { setResultsOffset(0); setSelectedId(job.id); }}><span className={`job-state ${job.status}`}>{activeStatuses.has(job.status) ? <LoaderCircle className="spin" /> : job.status === 'completed' ? <CheckCircle2 /> : <CircleAlert />}</span><span className="job-main"><strong>{job.params.keywords?.join(', ') || 'Adsız tarama'}</strong><small><Clock3 /> {formatDate(job.created_at)} · {job.result_count} sonuç</small></span><span className={`job-status ${job.status}`}>{statusLabel[job.status]}</span></button>)}</div>}
       </section>
     </section>
 
@@ -196,7 +214,7 @@ export function MapsPage() {
       <div className="maps-results-head"><div><span className="eyebrow">SEÇİLİ TARAMA</span><h2>{selectedJob.params.keywords?.join(', ') || 'Tarama sonuçları'}</h2><p>{statusLabel[selectedJob.status]} · {selectedJob.result_count} işletme · {formatDate(selectedJob.created_at)}</p></div><div>{selectedJob.status === 'completed' && <button className="secondary" onClick={() => download(selectedJob)}><Download size={16} /> CSV indir</button>}<button className="icon-button danger" onClick={() => deleteJob(selectedJob)} aria-label="Tarama işini sil"><Trash2 /></button></div></div>
       {selectedJob.error_message && <div className="form-error maps-alert"><CircleAlert size={16} /> {selectedJob.error_message}</div>}
       {activeStatuses.has(selectedJob.status) && <div className="maps-progress"><LoaderCircle className="spin" /><div><strong>Tarama devam ediyor</strong><p>Sonuçlar tamamlandığında burada görünecek.</p></div></div>}
-      {selectedJob.status === 'completed' && (resultsLoading ? <div className="maps-empty"><LoaderCircle className="spin" /><p>Sonuçlar yükleniyor…</p></div> : results && results.items.length > 0 ? <div className="responsive-table"><table><thead><tr><th>İşletme</th><th>Kategori</th><th>Adres</th><th>Telefon</th><th>Puan</th><th></th></tr></thead><tbody>{results.items.map((place) => <tr key={place.id}><td><strong>{place.title ?? 'İsimsiz işletme'}</strong></td><td>{place.category ?? '—'}</td><td className="maps-address">{place.address ?? '—'}</td><td>{place.phone ?? '—'}</td><td>{place.review_rating ?? '—'}{place.review_count != null && <small className="review-count"> ({place.review_count})</small>}</td><td>{place.website && <a className="external-link" href={place.website} target="_blank" rel="noreferrer" aria-label={`${place.title ?? 'İşletme'} web sitesini aç`}><ExternalLink /></a>}</td></tr>)}</tbody></table></div> : <div className="maps-empty"><Search /><strong>Sonuç bulunamadı</strong><p>Bu tarama tamamlandı ancak kayıt üretmedi.</p></div>)}
+      {selectedJob.status === 'completed' && (resultsLoading ? <div className="maps-empty"><LoaderCircle className="spin" /><p>Sonuçlar yükleniyor…</p></div> : results && results.items.length > 0 ? <><div className="responsive-table"><table><thead><tr><th>İşletme</th><th>Kategori</th><th>Adres</th><th>Telefon</th><th>E-posta</th><th>Website</th><th>Puan</th></tr></thead><tbody>{results.items.map((place) => { const emails = placeEmails(place); return <tr key={place.id}><td><strong>{place.title ?? 'İsimsiz işletme'}</strong></td><td>{place.category ?? '—'}</td><td className="maps-address" title={place.address ?? undefined}>{place.address ?? '—'}</td><td>{place.phone ? <a className="contact-link" href={`tel:${place.phone}`}>{place.phone}</a> : '—'}</td><td>{emails.length > 0 ? <span className="email-list">{emails.map((email) => <a key={email} className="contact-link" href={`mailto:${email}`}>{email}</a>)}</span> : '—'}</td><td>{place.website ? <a className="contact-link website-link" href={place.website} target="_blank" rel="noreferrer">{websiteLabel(place.website)} <ExternalLink /></a> : '—'}</td><td>{place.review_rating ?? '—'}{place.review_count != null && <small className="review-count"> ({place.review_count})</small>}</td></tr>; })}</tbody></table></div><div className="maps-pagination"><span>{results.offset + 1}–{Math.min(results.offset + results.items.length, results.total)} / {results.total} işletme</span><div><button className="secondary" disabled={results.offset === 0} onClick={() => setResultsOffset(Math.max(0, resultsOffset - resultsPageSize))}><ChevronLeft /> Önceki</button><button className="secondary" disabled={results.offset + results.items.length >= results.total} onClick={() => setResultsOffset(resultsOffset + resultsPageSize)}>Sonraki <ChevronRight /></button></div></div></> : <div className="maps-empty"><Search /><strong>Sonuç bulunamadı</strong><p>Bu tarama tamamlandı ancak kayıt üretmedi.</p></div>)}
     </section>}
   </div>;
 }
