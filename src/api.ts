@@ -16,3 +16,21 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) throw new ApiError(body.message ?? 'İstek başarısız oldu.', response.status);
   return body as T;
 }
+
+export async function downloadApiFile(path: string, fallbackName: string): Promise<void> {
+  const response = await fetch(`${API_URL}${path}`, { credentials: 'include' });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({})) as { message?: string };
+    throw new ApiError(body.message ?? 'Dosya indirilemedi.', response.status);
+  }
+  const blobUrl = URL.createObjectURL(await response.blob());
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] ?? fallbackName;
+  const anchor = document.createElement('a');
+  anchor.href = blobUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(blobUrl);
+}

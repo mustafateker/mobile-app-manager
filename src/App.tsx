@@ -7,6 +7,7 @@ import { AppsPage } from './pages/AppsPage';
 import { AsoPage } from './pages/AsoPage';
 import { AsoBeastPanelPage } from './pages/AsoBeastPanelPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { MapsPage } from './pages/MapsPage';
 import { Shell } from './components/Shell';
 
 export function App() {
@@ -19,6 +20,7 @@ export function App() {
     <Route path="/apps" element={<AppsPage />} />
     <Route path="/aso" element={<AsoPage />} />
     <Route path="/asobeast" element={<AsoBeastPanelPage />} />
+    <Route path="/maps" element={<MapsPage />} />
     <Route path="/settings" element={<SettingsPage />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes></Shell>;
