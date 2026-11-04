@@ -58,3 +58,62 @@ export type MapsResults = {
   offset: number;
   items: MapsPlace[];
 };
+
+export type ScreenView = {
+  screen: string;
+  screenTitle: string;
+  views: number;
+  uniqueVisitors: number;
+  percentage: number;
+};
+
+export type FunnelStep = {
+  stepId: string;
+  title: string;
+  count: number;
+  conversionRate: number;
+  dropoffRate: number;
+  dropoffCount: number;
+};
+
+export type PaywallAnalysis = {
+  steps: FunnelStep[];
+  dismissedCount: number;
+  cancelledCount: number;
+  failedCount: number;
+  dismissReasons: Record<string, number>;
+  selectedPackages: Record<string, number>;
+  overallConversion: number;
+};
+
+export type LiveEvent = {
+  id: string;
+  event: string;
+  eventDisplay: string;
+  timestamp: string;
+  screenName: string | null;
+  city: string | null;
+  country: string | null;
+  os: string | null;
+  deviceType: string | null;
+};
+
+export type PostHogConfig = {
+  configured: boolean;
+  connected: boolean;
+  projectId: string;
+  host: string;
+  hasApiKey: boolean;
+};
+
+export type AnalyticsOverview = {
+  config: PostHogConfig;
+  totalEvents: number;
+  activeUsers: number;
+  topScreen: string;
+  screens: ScreenView[];
+  paywall: PaywallAnalysis;
+  recentEvents: LiveEvent[];
+  behaviorSummary: string;
+  timeRange: string;
+};

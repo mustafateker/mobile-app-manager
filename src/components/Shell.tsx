@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import { Activity, AppWindow, Bot, LayoutDashboard, LogOut, MapPinned, Settings, Sparkles } from 'lucide-react';
+import { Activity, AppWindow, BarChart3, Bot, LayoutDashboard, LogOut, MapPinned, Settings, Sparkles } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { api } from '../api';
 
 const links = [
   { to: '/', label: 'Genel Bakış', icon: LayoutDashboard },
   { to: '/apps', label: 'Uygulamalar', icon: AppWindow },
+  { to: '/trinkow-analytics', label: 'Trinkow Analitik', icon: BarChart3 },
   { to: '/aso', label: 'ASO Merkezi', icon: Sparkles },
   { to: '/maps', label: 'Maps Tarama', icon: MapPinned },
   { to: '/asobeast', label: 'AsoBeast Paneli', icon: Bot },
