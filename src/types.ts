@@ -117,3 +117,34 @@ export type AnalyticsOverview = {
   behaviorSummary: string;
   timeRange: string;
 };
+
+export type TrinkowUserPremium = {
+  active: boolean;
+  lifetime: boolean;
+  expires_at: string | null;
+  product: string | null;
+  store: string | null;
+  environment: string | null;
+};
+
+export type TrinkowUser = {
+  id: string;
+  email: string;
+  provider: 'eposta' | 'google' | 'apple' | 'demo';
+  created_at: string | null;
+  is_today: boolean;
+  suspended: boolean;
+  premium: TrinkowUserPremium;
+};
+
+export type TrinkowUsersResponse = {
+  items: TrinkowUser[];
+  total_users: number;
+  today_users: number;
+  premium_users: number;
+  suspended_users: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+};
+
